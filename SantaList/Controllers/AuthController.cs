@@ -1,15 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+using GoogleMaps.LocationServices;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
-using SantaList.Authentication;
-using SantaList.Helpers;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using SantaList.Models.Auth;
 
 namespace SantaList.Controllers
@@ -19,53 +17,95 @@ namespace SantaList.Controllers
     public class AuthController : ControllerBase
     {
         private readonly UserManager<AppUser> _userManager;
-        private readonly IJwtFactory _jwtFactory;
-        private readonly JwtIssuerOptions _jwtOptions;
+        private readonly IConfiguration _configuration;
 
-        public AuthController(UserManager<AppUser> userManager, IJwtFactory jwtFactory, IOptions<JwtIssuerOptions> jwtOptions)
+        public AuthController(UserManager<AppUser> userManager, IConfiguration configuration)
         {
             _userManager = userManager;
-            _jwtFactory = jwtFactory;
-            _jwtOptions = jwtOptions.Value;
+            _configuration = configuration;
         }
 
         // POST api/auth/login
         [HttpPost("login")]
-        public async Task<IActionResult> Post([FromBody]CredentialsModel credentials)
+        public async Task<IActionResult> Login([FromBody]CredentialsModel credentials)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var identity = await GetClaimsIdentity(credentials.UserName, credentials.Password);
-            if (identity == null)
+            var user = await _userManager.FindByNameAsync(credentials.UserName);
+            if (user != null && await _userManager.CheckPasswordAsync(user, credentials.Password))
             {
-                return new BadRequestObjectResult("Login failure: Invalid username or password.");
+                var claim = new[]
+                {
+                    new Claim(JwtRegisteredClaimNames.Sub, user.UserName)
+                };
+                var signinKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(_configuration["Jwt:SigningKey"]));
+                int expiryInMinutes = Convert.ToInt32(_configuration["Jwt:ExpiryInMinutes"]);
+                var token = new JwtSecurityToken(
+                    issuer: _configuration["Jwt:Site"],
+                    audience: _configuration["Jwt:Site"],
+                    expires: DateTime.UtcNow.AddMinutes(expiryInMinutes),
+                    signingCredentials: new SigningCredentials(signinKey, SecurityAlgorithms.HmacSha256)
+                );
+                return Ok(
+                    new
+                    {
+                        token = new JwtSecurityTokenHandler().WriteToken(token),
+                        expiration = token.ValidTo
+                    }
+                );
             }
-
-            var jwt = await Tokens.GenerateJwt(identity, _jwtFactory, credentials.UserName, _jwtOptions, new JsonSerializerSettings { Formatting = Formatting.Indented });
-            return new OkObjectResult(jwt);
+            return Unauthorized();
         }
 
-        private async Task<ClaimsIdentity> GetClaimsIdentity(string userName, string password)
+        // POST: api/auth/register
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegistrationViewModel model)
         {
-            if (string.IsNullOrEmpty(userName) || string.IsNullOrEmpty(password))
-                return await Task.FromResult<ClaimsIdentity>(null);
-
-            // get the user to verifty
-            var userToVerify = await _userManager.FindByNameAsync(userName);
-
-            if (userToVerify == null) return await Task.FromResult<ClaimsIdentity>(null);
-
-            // check the credentials
-            if (await _userManager.CheckPasswordAsync(userToVerify, password))
+            if (!ModelState.IsValid)
             {
-                return await Task.FromResult(_jwtFactory.GenerateClaimsIdentity(userName, userToVerify.Id));
+                return BadRequest(ModelState);
+            }
+            var address = model.Street + ", " + model.City + ", " + model.Province + ", " + model.Country;
+            var locationService = new GoogleLocationService("AIzaSyDWn7EHZxQxaEeyjJYJbsvWyL1Neo-cJaE");
+            var point = locationService.GetLatLongFromAddress(address);
+
+            double latitude = point.Latitude;
+            double longitude = point.Longitude;
+
+            var user = new AppUser
+            {
+                UserName = model.UserName,
+                Email = model.Email,
+                FirstName = model.FirstName,
+                LastName = model.LastName,
+                Street = model.Street,
+                City = model.City,
+                Province = model.Province,
+                PostalCode = model.PostalCode,
+                Country = model.Country,
+                Phone = model.Phone,
+                isNaughty = false,
+                Latitude = latitude,
+                Longitude = longitude,
+                DateCreated = DateTime.Now,
+            };
+
+            var result = await _userManager.CreateAsync(user, model.Password);
+
+            if (!result.Succeeded)
+            {
+                return new BadRequestObjectResult(user);
+            }
+            else
+            {
+                await _userManager.AddToRoleAsync(user, "Child");
             }
 
-            // Credentials are invalid, or account doesn't exist
-            return await Task.FromResult<ClaimsIdentity>(null);
+            return new OkObjectResult("Account created");
         }
     }
 }

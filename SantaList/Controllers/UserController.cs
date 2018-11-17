@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using GoogleMaps.LocationServices;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using SantaList.Data;
 using SantaList.Models.Auth;
 
 namespace SantaList.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class UserController : ControllerBase
@@ -26,6 +26,28 @@ namespace SantaList.Controllers
             _userManager = userManager;
             _roleManager = roleManager;
             _context = context;
+        }
+
+        // GET: api/User/role/5
+        [HttpGet("role/{id}", Name = "Role")]
+        public async Task<IActionResult> GetUserRole(string id)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            string role = _userManager.GetRolesAsync(user).Result.Single();
+
+            return Ok(new {
+                role = new String(role)
+            });
         }
 
         // GET: api/User
@@ -62,51 +84,6 @@ namespace SantaList.Controllers
             return Ok(user);
         }
 
-        // POST: api/User
-        [HttpPost]
-        public async Task<IActionResult> Post([FromBody] RegistrationViewModel model)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-            var address = model.Street + ", " + model.City + ", " + model.Province + ", " + model.Country;
-            var locationService = new GoogleLocationService("AIzaSyDsExQ1KTIx9MwJw917_vGHzt27xKKcUuA");
-            var point = locationService.GetLatLongFromAddress(address);
-
-            double latitude = point.Latitude;
-            double longitude = point.Longitude;
-
-            var user = new AppUser
-            {
-                UserName = model.UserName,
-                Email = model.Email,
-                FirstName = model.FirstName,
-                LastName = model.LastName,
-                Street = model.Street,
-                City = model.City,
-                Province = model.Province,
-                PostalCode = model.PostalCode,
-                Country = model.Country,
-                PhoneNumber = model.Phone,
-                Latitude = latitude,
-                Longitude = longitude,
-                DateCreated = DateTime.Now,
-            };
-
-            var result = await _userManager.CreateAsync(user, model.Password);
-
-            if (!result.Succeeded)
-            {
-                return new BadRequestObjectResult(user);
-            } else
-            {
-                await _userManager.AddToRoleAsync(user, "Child");
-            }
-
-            return new OkObjectResult("Account created");
-        }
-
         // PUT: api/User/5
         [HttpPut("{id}")]
         public async Task<IActionResult> Put(string id, [FromBody] EditUserListModel model)
@@ -122,7 +99,7 @@ namespace SantaList.Controllers
             }
 
             var address = model.Street + ", " + model.City + ", " + model.Province + ", " + model.Country;
-            var locationService = new GoogleLocationService("AIzaSyDsExQ1KTIx9MwJw917_vGHzt27xKKcUuA");
+            var locationService = new GoogleLocationService("AIzaSyDWn7EHZxQxaEeyjJYJbsvWyL1Neo-cJaE");
             var point = locationService.GetLatLongFromAddress(address);
 
             double latitude = point.Latitude;
@@ -140,14 +117,15 @@ namespace SantaList.Controllers
                 user.Province = model.Province;
                 user.PostalCode = model.PostalCode;
                 user.Country = model.Country;
-                user.PhoneNumber = model.Phone;
+                user.Phone = model.Phone;
+                user.isNaughty = model.IsNaughty;
                 user.Latitude = latitude;
                 user.Longitude = longitude;
 
                 IdentityResult result = await _userManager.UpdateAsync(user);
                 if (!result.Succeeded) return new BadRequestResult();
             }
-            return new OkResult();
+            return new OkObjectResult("User info updated");
         }
 
         // DELETE: api/ApiWithActions/5

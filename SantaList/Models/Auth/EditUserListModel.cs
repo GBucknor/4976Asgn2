@@ -51,6 +51,9 @@ namespace SantaList.Models.Auth
         [Display(Name = "Phone Number")]
         public string Phone { get; set; }
 
+        [Display(Name = "Naughty or Nice")]
+        public bool IsNaughty { get; set; }
+
         [DataType(DataType.Text)]
         [MaxLength(7)]
         [Display(Name = "Postal Code")]
