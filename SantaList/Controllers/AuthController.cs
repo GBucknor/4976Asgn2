@@ -12,7 +12,6 @@ using SantaList.Models.Auth;
 
 namespace SantaList.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
     public class AuthController : ControllerBase
     {
@@ -25,7 +24,7 @@ namespace SantaList.Controllers
             _configuration = configuration;
         }
 
-        // POST api/auth/login
+        // POST /login
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody]CredentialsModel credentials)
         {
@@ -61,7 +60,7 @@ namespace SantaList.Controllers
             return Unauthorized();
         }
 
-        // POST: api/auth/register
+        // POST: /register
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegistrationViewModel model)
         {
@@ -70,7 +69,7 @@ namespace SantaList.Controllers
                 return BadRequest(ModelState);
             }
             var address = model.Street + ", " + model.City + ", " + model.Province + ", " + model.Country;
-            var locationService = new GoogleLocationService("AIzaSyDWn7EHZxQxaEeyjJYJbsvWyL1Neo-cJaE");
+            var locationService = new GoogleLocationService("AIzaSyDR2Q4cDiK8JabHLjuBjWyCrXRkhewxCxw");
             var point = locationService.GetLatLongFromAddress(address);
 
             double latitude = point.Latitude;
