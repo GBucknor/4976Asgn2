@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,11 +18,13 @@ namespace SantaList.Controllers
     {
         private readonly UserManager<AppUser> _userManager;
         private readonly IConfiguration _configuration;
+        private readonly RoleManager<AppRole> _roleManager;
 
-        public AuthController(UserManager<AppUser> userManager, IConfiguration configuration)
+        public AuthController(UserManager<AppUser> userManager, IConfiguration configuration, RoleManager<AppRole> roleManager)
         {
             _userManager = userManager;
             _configuration = configuration;
+            _roleManager = roleManager;
         }
 
         // POST /login
@@ -49,12 +52,14 @@ namespace SantaList.Controllers
                     expires: DateTime.UtcNow.AddMinutes(expiryInMinutes),
                     signingCredentials: new SigningCredentials(signinKey, SecurityAlgorithms.HmacSha256)
                 );
+                string userRole = _roleManager.Roles.Single(r => r.Name == _userManager.GetRolesAsync(user).Result.Single()).Id;
                 return Ok(
                     new
                     {
                         user = user.Id,
                         token = new JwtSecurityTokenHandler().WriteToken(token),
-                        expiration = token.ValidTo
+                        expiration = token.ValidTo,
+                        role = userRole
                     }
                 );
             }

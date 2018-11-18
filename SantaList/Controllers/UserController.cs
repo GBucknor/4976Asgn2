@@ -28,28 +28,6 @@ namespace SantaList.Controllers
             _context = context;
         }
 
-        // GET: api/User/role/5
-        [HttpGet("role/{id}", Name = "Role")]
-        public async Task<IActionResult> GetUserRole(string id)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var user = await _userManager.FindByIdAsync(id);
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            string role = _userManager.GetRolesAsync(user).Result.Single();
-
-            return Ok(new {
-                role = new String(role)
-            });
-        }
-
         // GET: api/User
         [HttpGet]
         public IEnumerable<UserListModel> Get()
