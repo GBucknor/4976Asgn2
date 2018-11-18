@@ -52,7 +52,7 @@ namespace SantaList.Controllers
                     expires: DateTime.UtcNow.AddMinutes(expiryInMinutes),
                     signingCredentials: new SigningCredentials(signinKey, SecurityAlgorithms.HmacSha256)
                 );
-                string userRole = _roleManager.Roles.Single(r => r.Name == _userManager.GetRolesAsync(user).Result.Single()).Id;
+                string userRole = _roleManager.Roles.Single(r => r.Name == _userManager.GetRolesAsync(user).Result.Single()).Name;
                 return Ok(
                     new
                     {
