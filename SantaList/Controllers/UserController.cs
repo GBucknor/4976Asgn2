@@ -11,7 +11,7 @@ using SantaList.Models.Auth;
 
 namespace SantaList.Controllers
 {
-    [Authorize]
+    //[Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class UserController : ControllerBase
@@ -61,7 +61,8 @@ namespace SantaList.Controllers
                 Username = user.UserName,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
-            }).ToList();
+                IsNaughty = user.isNaughty
+            }).Where(user => user.Username != "santa").ToList();
             return model;
         }
 

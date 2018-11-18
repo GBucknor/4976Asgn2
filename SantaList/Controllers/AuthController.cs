@@ -52,6 +52,7 @@ namespace SantaList.Controllers
                 return Ok(
                     new
                     {
+                        user = user.Id,
                         token = new JwtSecurityTokenHandler().WriteToken(token),
                         expiration = token.ValidTo
                     }
