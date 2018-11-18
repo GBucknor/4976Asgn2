@@ -104,7 +104,7 @@ namespace SantaList.Controllers
                 IdentityResult result = await _userManager.UpdateAsync(user);
                 if (!result.Succeeded) return new BadRequestResult();
             }
-            return new OkObjectResult("User info updated");
+            return Ok();
         }
 
         // DELETE: api/ApiWithActions/5

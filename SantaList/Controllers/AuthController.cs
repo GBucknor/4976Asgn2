@@ -110,7 +110,7 @@ namespace SantaList.Controllers
                 await _userManager.AddToRoleAsync(user, "Child");
             }
 
-            return new OkObjectResult("Account created");
+            return Ok();
         }
     }
 }
