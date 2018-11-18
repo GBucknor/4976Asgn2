@@ -11,7 +11,7 @@ using SantaList.Models.Auth;
 
 namespace SantaList.Controllers
 {
-    //[Authorize]
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class UserController : ControllerBase

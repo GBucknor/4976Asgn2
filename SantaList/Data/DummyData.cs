@@ -41,7 +41,7 @@ namespace SantaList.Data
                     UserName = "santa",
                     Email = "santa@np.com",
                     FirstName = "Santa",
-                    LastName = "Clause",
+                    LastName = "Claus",
                     Street = "North St",
                     City = "North Pole",
                     Province = "Alaska",
